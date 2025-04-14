@@ -78,7 +78,7 @@ Before you begin, ensure you have the following:
         *   `Send Messages in Threads`
         *   `Embed Links`
         *   `Read Message History`
-        *   `Mention @everyone, @here, and All Roles` (Needed for reminder pings if owners are roles/users)
+        *   `Mention @everyone` (Needed for reminder pings if owners are roles/users)
     *   Copy the generated URL and paste it into your browser.
     *   Select the server you want to add the bot to and authorize it.
 
