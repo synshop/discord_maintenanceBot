@@ -57,11 +57,11 @@ Before you begin, ensure you have the following:
     # This is used initially and if the setting is missing from bot_data.json.
     # Can be changed later using the !set_reminder_interval command.
     # Must be a positive whole number.
-    REMINDER_REPEAT_DAYS="7"
+    REMINDER_REPEAT_DAYS="3"
 
     # OPTIONAL: How often the bot checks timers, in seconds.
     # Must be a positive whole number. Lower values mean faster checks but more activity.
-    CHECK_INTERVAL_SECONDS="60"
+    CHECK_INTERVAL_SECONDS="14400"
     ```
 
     *   **IMPORTANT:** If you are using Git, add `.env` to your `.gitignore` file to avoid accidentally committing your bot token!
