@@ -13,7 +13,7 @@ load_dotenv() # Load variables from .env file into environment
 # --- Configuration from Environment Variables (with defaults and validation) ---
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-# Default reminder repeat days (used if not in .env or bot_data.json)
+# Default reminder repeat days (used if not in .env or maintenancebot_data.json)
 DEFAULT_REMINDER_DAYS = 7
 try:
     # Get from .env, fallback to string default, convert to int
@@ -36,18 +36,19 @@ except ValueError:
     logging.warning(f"Invalid CHECK_INTERVAL_SECONDS in .env. Must be an integer. Using default: {DEFAULT_CHECK_INTERVAL}")
     CHECK_INTERVAL_SECONDS = DEFAULT_CHECK_INTERVAL
 
-
 COMMAND_PREFIX = "!" # Keep prefix here or move to .env if desired
-DATA_FILE = "bot_data.json"
+
+#Data storage file, change name if desired.
+DATA_FILE = "maintenancebot_data.json"
 
 # --- Validate Essential Config ---
 if not BOT_TOKEN:
     logging.critical("CRITICAL ERROR: DISCORD_BOT_TOKEN not found in .env file or environment variables.")
     # Optionally raise an exception or exit
-    exit("Bot token is missing. Please check your .env file.") # Exit script if token is missing
+    exit("Bot token is missing. Please check your .env file.") # Exit if token is missing
 
 # --- Global Settings (initialized with default from .env) ---
-# This dictionary will be updated from bot_data.json by load_data()
+# This will be updated from maintenancebot_data.json by load_data() if present, otherwise from .env
 global_settings = {
     # Use the value loaded from .env as the initial default
     "reminder_repeat_days": REMINDER_REPEAT_DAYS_DEFAULT_ENV
@@ -58,7 +59,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(name
 logger = logging.getLogger('discord')
 
 # --- Custom Help Command (MyHelpCommand class) ---
-# ... (Keep the MyHelpCommand class exactly as it was) ...
 class MyHelpCommand(commands.MinimalHelpCommand):
     """Custom help command to show parameters."""
 
@@ -81,10 +81,6 @@ class MyHelpCommand(commands.MinimalHelpCommand):
         # --- Show Aliases ---
         if command.aliases:
             embed.add_field(name="Aliases", value=", ".join(command.aliases), inline=False)
-
-        # --- Optional: Add detailed description from docstring ---
-        # if command.description:
-        #     embed.add_field(name="Details", value=command.description, inline=False)
 
         # --- Show Required Permissions ---
         perms = []
@@ -131,15 +127,13 @@ bot = commands.Bot(
     command_prefix=COMMAND_PREFIX,
     intents=intents,
     help_command=MyHelpCommand(),
-    description="A bot for managing maintenance task reminders."
+    description="A bot for managing shop maintenance reminders."
 )
 
 # --- Global Timers Dictionary ---
 timers = {}
 
 # --- Helper Functions (save_data, load_data, calculate_next_due, strfdelta) ---
-# load_data needs a slight adjustment to use the .env default if JSON is missing the key
-
 def save_data():
     """Saves the current state of timers and global settings to the JSON file."""
     global timers, global_settings
@@ -333,7 +327,6 @@ async def before_check_timers():
 
 
 # --- Bot Commands (create_timer, done, list_timers, delete_timer, get_reminder_interval, set_reminder_interval) ---
-# ... (Keep the command definitions exactly as they were in the previous version) ...
 @bot.command(name="create_timer", help="Creates a new maintenance timer.")
 @commands.guild_only()
 async def create_timer(ctx, name: str, interval_value: int, interval_unit: str, owner: str, *, description: str):
@@ -470,7 +463,6 @@ async def set_reminder_interval(ctx, days: int):
 
 
 # --- Error Handling (Specific Handlers and Generic Handler) ---
-# ... (Keep the error handlers exactly as they were in the previous version) ...
 @delete_timer.error
 async def delete_timer_error(ctx, error):
     if isinstance(error, commands.MissingPermissions): pass # Handled globally

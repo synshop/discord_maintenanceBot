@@ -1,6 +1,6 @@
 # Discord Maintenance Timer Bot
 
-A simple Discord bot written in Python, designed to manage recurring maintenance tasks or reminders within a Discord server for a Maker Space. It allows users to create multiple timers with custom intervals, descriptions, and owners. When a task is due, the bot posts a reminder in the designated channel and continues to re-notify at a configurable interval until the task is marked as complete.
+A simple Discord bot written in Python, designed to manage recurring maintenance tasks or reminders within a Discord server for a SYN Shop. It allows discord users to create multiple timers with custom intervals, descriptions, and owners. When a task is due, the bot posts a reminder in the designated channel and continues to re-notify at a configurable interval until the task is marked as complete. Any user can add a timer, but only an admin (in our case board members) can delete one.
 
 ## Features
 
@@ -10,8 +10,8 @@ A simple Discord bot written in Python, designed to manage recurring maintenance
 *   **Persistent Pending Notifications:** If a task isn't marked done, the bot re-notifies periodically (using a global setting) until completion.
 *   **Task Completion Tracking:** Use a simple command (`!done`) to mark tasks complete and automatically reset their timer.
 *   **List & Manage:** View all active timers and delete unnecessary ones.
-*   **`.env` Configuration:** Securely store your bot token and settings outside the code.
-*   **Data Persistence:** Timer and settings data are saved in `bot_data.json` to survive bot restarts.
+*   **`.env` Configuration:** Securely store the bot token and settings outside the code.
+*   **Data Persistence:** Timer and settings data are saved in `maintenancebot_data.json` to survive bot restarts.
 *   **Detailed Help Command:** Get specific usage instructions for each command, including parameters.
 
 ## Prerequisites
@@ -39,12 +39,12 @@ Before you begin, ensure you have the following:
 2.  **Install Dependencies:**
     Navigate to the bot's directory in your terminal and install the required Python libraries:
     ```bash
-    pip install -U discord.py python-dotenv
+    pip install -U discord.py python-dotenv python-dateutil
     ```
     *(Alternatively, if a `requirements.txt` file is provided: `pip install -r requirements.txt`)*
 
 3.  **Configure the Bot:**
-    *   In the same directory as the Python script, create a file named exactly `.env` (note the leading dot).
+    *   In the same directory as the Python script, create a file named `.env`.
     *   Add the following content to the `.env` file, replacing the placeholder values:
 
     ```dotenv
@@ -62,9 +62,6 @@ Before you begin, ensure you have the following:
     # OPTIONAL: How often the bot checks timers, in seconds.
     # Must be a positive whole number. Lower values mean faster checks but more activity.
     CHECK_INTERVAL_SECONDS="60"
-
-    # OPTIONAL: The command prefix (defaults to "!" in the code if not changed there)
-    # COMMAND_PREFIX="!"
     ```
 
     *   **IMPORTANT:** If you are using Git, add `.env` to your `.gitignore` file to avoid accidentally committing your bot token!
