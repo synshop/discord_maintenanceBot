@@ -11,8 +11,8 @@ services:
       #REMINDER_REPEAT_DAYS="3"
       #CHECK_INTERVAL_SECONDS="14400"
     volumes:
-      - discord-bot_data:/bot/data
+      - maintenance-bot_data:/bot/data
 
 volumes:
-  discord-bot_data:
+  maintenance-bot_data:
     external: true
