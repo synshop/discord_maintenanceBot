@@ -39,7 +39,7 @@ except ValueError:
 COMMAND_PREFIX = "!" # Keep prefix here or move to .env if desired
 
 #Data storage file, change name if desired.
-DATA_FILE = os.path.join(current_directory, 'data', 'maintenancebot_data.json')
+DATA_FILE = os.path.join('/bot/data', 'maintenancebot_data.json')
 
 # --- Validate Essential Config ---
 if not BOT_TOKEN:

@@ -5,4 +5,4 @@ COPY . /bot
 
 RUN python -m pip install -r requirements.txt
 
-ENRYPOINT [ "python", "maintenance_bot.py"]
+ENTRYPOINT [ "python", "maintenance_bot.py"]
