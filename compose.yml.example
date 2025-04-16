@@ -1,15 +1,12 @@
 services:
   maintenance-bot:
-    container_name: maintenance-bot
-    build: .
     image: discord-maintenance-bot
-    env_file:
-      - .env
-    #comment out above and uncomment below to use env flags instead of .env
-    #environment:
-      #DISCORD_BOT_TOKEN="YOUR_API_BOT_TOKEN_HERE"
-      #REMINDER_REPEAT_DAYS="3"
-      #CHECK_INTERVAL_SECONDS="14400"
+    container_name: maintenance-bot
+    environment:
+      #suggested to use ${env_vars} in setups like portainer
+      DISCORD_BOT_TOKEN: "YOUR_API_BOT_TOKEN_HERE"
+      REMINDER_REPEAT_DAYS: "3"
+      CHECK_INTERVAL_SECONDS: "14400"
     volumes:
       - maintenance-bot_data:/bot/data
 
