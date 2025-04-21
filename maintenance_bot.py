@@ -12,6 +12,10 @@ from dotenv import load_dotenv
 # --- Load Environment Variables ---
 load_dotenv()
 
+# --- Logging Setup ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+logger = logging.getLogger('discord')
+
 # --- Configuration from Environment Variables ---
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
@@ -68,10 +72,6 @@ if not BOT_TOKEN:
 global_settings = {
     "reminder_repeat_days": REMINDER_REPEAT_DAYS_DEFAULT_ENV
 }
-
-# --- Logging Setup ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-logger = logging.getLogger('discord')
 
 # --- Global Timers Dictionary ---
 timers = {}
