@@ -46,6 +46,19 @@ CURRENT_VERSION = "0.0.0"  # Default version if no version file exists
 RELEASE_NOTES = ""
 NEW_VERSION_DETECTED = False
 
+# Configuration for version announcement channel
+DEFAULT_ANNOUNCEMENT_CHANNEL = "general"  # Default channel if not specified
+ANNOUNCEMENT_CHANNEL = os.getenv("ANNOUNCEMENT_CHANNEL", DEFAULT_ANNOUNCEMENT_CHANNEL)
+# Check if the value is a numeric ID (for direct channel ID usage)
+try:
+    ANNOUNCEMENT_CHANNEL_ID = int(ANNOUNCEMENT_CHANNEL)
+    ANNOUNCEMENT_CHANNEL_NAME = None
+    logger.info(f"Will announce version updates to channel ID: {ANNOUNCEMENT_CHANNEL_ID}")
+except ValueError:
+    ANNOUNCEMENT_CHANNEL_ID = None
+    ANNOUNCEMENT_CHANNEL_NAME = ANNOUNCEMENT_CHANNEL.lower()
+    logger.info(f"Will announce version updates to channel named: {ANNOUNCEMENT_CHANNEL_NAME}")
+
 # --- Validate Essential Config ---
 if not BOT_TOKEN:
     logging.critical("CRITICAL ERROR: DISCORD_BOT_TOKEN not found in .env file or environment variables.")
@@ -272,20 +285,42 @@ class MaintenanceBot(discord.Client):
         logger.info(f"Announcing new version {CURRENT_VERSION} to all servers")
         
         for guild in self.guilds:
-            # Find the first text channel we can send messages to
+            # Find the appropriate channel based on configuration
             channel = None
-            for ch in guild.text_channels:
-                # Try to find a "general" channel first
-                if ch.name.lower() in ["general", "main", "chat", "bot", "bot-commands"]:
-                    channel = ch
-                    break
             
-            # If no preferred channel, just use the first one we can send to
-            if not channel:
+            # First try to find by ID if configured that way
+            if ANNOUNCEMENT_CHANNEL_ID is not None:
+                channel = guild.get_channel(ANNOUNCEMENT_CHANNEL_ID)
+                if channel:
+                    logger.info(f"Found configured channel by ID {ANNOUNCEMENT_CHANNEL_ID} in {guild.name}")
+            
+            # If no channel by ID found, try by name
+            if channel is None and ANNOUNCEMENT_CHANNEL_NAME is not None:
+                for ch in guild.text_channels:
+                    if ch.name.lower() == ANNOUNCEMENT_CHANNEL_NAME:
+                        channel = ch
+                        logger.info(f"Found configured channel '{ANNOUNCEMENT_CHANNEL_NAME}' in {guild.name}")
+                        break
+            
+            # Fallback to searching for common channel names if configured channel not found
+            if channel is None:
+                common_channels = ["general", "bot-updates", "announcements", "bot", "bot-commands"]
+                for name in common_channels:
+                    for ch in guild.text_channels:
+                        if ch.name.lower() == name:
+                            channel = ch
+                            logger.info(f"Using fallback channel '{name}' in {guild.name}")
+                            break
+                    if channel:
+                        break
+            
+            # Last resort: use first writable channel
+            if channel is None:
                 for ch in guild.text_channels:
                     permissions = ch.permissions_for(guild.me)
                     if permissions.send_messages:
                         channel = ch
+                        logger.info(f"Using first available channel '{ch.name}' in {guild.name}")
                         break
             
             # If we found a channel, send the announcement

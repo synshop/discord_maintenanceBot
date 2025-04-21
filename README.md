@@ -62,6 +62,9 @@ Before you begin, ensure you have the following:
     # OPTIONAL: How often the bot checks timers, in seconds.
     # Must be a positive whole number. Lower values mean faster checks but more activity.
     CHECK_INTERVAL_SECONDS="14400"
+
+    # OPTIONAL: What channel should the bot announce its been updated in?
+    ANNOUNCEMENT_CHANNEL=general
     ```
 
     *   **IMPORTANT:** If you are using Git, add `.env` to your `.gitignore` file to avoid accidentally committing your bot token!

@@ -5,6 +5,9 @@ WORKDIR /bot
 ARG VERSION="0.0.0"
 ARG RELEASE_NOTES=""
 
+#env params
+ENV ANNOUNCEMENT_CHANNEL=general
+
 # Copy application files
 COPY . /bot
 
