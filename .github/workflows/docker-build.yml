@@ -32,18 +32,22 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       
       - name: Get release notes
-        if: github.event_name == 'release'
-        id: release_notes
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const release = await github.rest.repos.getRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: context.payload.release.id
-            });
-            const releaseNotes = release.data.body || "No release notes provided";
-            core.setOutput('notes', releaseNotes);
+          if: github.event_name == 'release'
+          id: release_notes
+          uses: actions/github-script@v6
+          with:
+            script: |
+              const release = await github.rest.repos.getRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: context.payload.release.id
+              });
+              const releaseNotes = release.data.body || "No release notes provided";
+              // Properly JSON-encode the notes and avoid control characters
+              const safeNotes = JSON.stringify(releaseNotes)
+                .replace(/\r/g, '')
+                .replace(/\n/g, '\\n');
+              core.setOutput('notes', safeNotes);
       
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
