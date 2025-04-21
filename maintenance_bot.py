@@ -490,6 +490,104 @@ async def set_reminder_interval(interaction: discord.Interaction, days: int):
     except Exception as e:
         await interaction.response.send_message("❌ Error saving interval.", ephemeral=True)
         logger.error(f"Error setting global reminder interval: {e}", exc_info=True)
+
+@bot.tree.command(name="edit_timer", description="Edits an existing maintenance timer")
+@app_commands.describe(
+    name="The name of the timer to edit",
+    interval_value="New interval value (e.g., 7, 2, 1)",
+    interval_unit="New interval unit (Days/Weeks/Months)",
+    owner="New owner (including @ will tag this person/group)",
+    description="New task description"
+)
+@app_commands.choices(interval_unit=[
+    app_commands.Choice(name="Days", value="days"),
+    app_commands.Choice(name="Weeks", value="weeks"),
+    app_commands.Choice(name="Months", value="months")
+])
+async def edit_timer(interaction: discord.Interaction, name: str, interval_value: int = None, 
+                     interval_unit: str = None, owner: str = None, description: str = None):
+    """Edits an existing maintenance timer."""
+    if not interaction.guild:
+        await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+        return
+        
+    guild_id = interaction.guild.id
+    
+    # Check if the timer exists
+    if guild_id not in timers or name not in timers[guild_id]:
+        await interaction.response.send_message(f"❌ Error: Timer '{name}' not found.", ephemeral=True)
+        return
+    
+    # Get the current timer data
+    timer_data = timers[guild_id][name]
+    
+    # Track if any changes were made
+    changes_made = False
+    changes_list = []
+    
+    try:
+        # Update interval_value if provided
+        if interval_value is not None:
+            if interval_value <= 0:
+                await interaction.response.send_message("❌ Error: Interval value must be positive.", ephemeral=True)
+                return
+            timer_data["interval_value"] = interval_value
+            changes_made = True
+            changes_list.append(f"interval value to {interval_value}")
+        
+        # Update interval_unit if provided
+        if interval_unit is not None:
+            valid_units = ["days", "weeks", "months"]
+            if interval_unit.lower() not in valid_units:
+                await interaction.response.send_message(f"❌ Error: Interval unit must be one of: {', '.join(valid_units)}.", ephemeral=True)
+                return
+            timer_data["interval_unit"] = interval_unit.lower()
+            changes_made = True
+            changes_list.append(f"interval unit to {interval_unit.lower()}")
+        
+        # Update owner if provided
+        if owner is not None:
+            timer_data["owner"] = owner
+            changes_made = True
+            changes_list.append(f"owner to {owner}")
+        
+        # Update description if provided
+        if description is not None:
+            timer_data["description"] = description
+            changes_made = True
+            changes_list.append(f"description")
+        
+        # If interval was changed, update the next_due date unless it's pending
+        if (interval_value is not None or interval_unit is not None) and not timer_data.get("is_pending", False):
+            next_due_time = calculate_next_due(
+                timer_data["interval_value"], 
+                timer_data["interval_unit"],
+                # Use the original due date as the starting point if available
+                start_time=datetime.utcnow()
+            )
+            if not next_due_time:
+                await interaction.response.send_message(f"❌ Error: Could not calculate next due date with unit '{timer_data['interval_unit']}'.", ephemeral=True)
+                return
+            
+            timer_data["next_due"] = next_due_time
+            changes_list.append(f"next due date to {next_due_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        
+        # Save changes if any were made
+        if changes_made:
+            save_data()
+            await interaction.response.send_message(
+                f"✅ Timer '{name}' updated successfully!\n"
+                f"Changes: {', '.join(changes_list)}."
+            )
+            logger.info(f"Timer '{name}' edited in guild {guild_id} by {interaction.user.name}.")
+        else:
+            await interaction.response.send_message(f"ℹ️ No changes were made to timer '{name}'.", ephemeral=True)
+            
+    except ValueError as e:
+        await interaction.response.send_message(f"❌ Error updating timer: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message("❌ An unexpected error occurred.", ephemeral=True)
+        logger.error(f"Error editing timer '{name}' in guild {guild_id}: {e}", exc_info=True)
 # --- Error Handling for App Commands ---
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
