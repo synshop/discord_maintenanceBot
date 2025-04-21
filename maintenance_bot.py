@@ -41,7 +41,7 @@ except ValueError:
 DATA_FILE = "/bot/data/maintenancebot_data.json"
 
 # Versioning info
-VERSION_FILE = "/bot/data/version.json"
+VERSION_FILE = "/bot/version.json"
 CURRENT_VERSION = "0.0.0"  # Default version if no version file exists
 RELEASE_NOTES = ""
 NEW_VERSION_DETECTED = False
