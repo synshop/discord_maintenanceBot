@@ -2,6 +2,7 @@ FROM python:3.12.9-slim-bookworm
 
 WORKDIR /bot
 COPY . /bot
+COPY version.json /bot/version.json
 
 RUN python -m pip install -r requirements.txt
 

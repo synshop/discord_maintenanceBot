@@ -54,7 +54,6 @@ jobs:
           {
             "current_version": "${{ env.VERSION }}",
             "release_notes": $(echo '${{ steps.release_notes.outputs.notes }}' | jq -R -s .),
-            "last_seen_version": "0.0.0"
           }
           EOF
           echo "Created version file:"
