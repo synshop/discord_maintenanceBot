@@ -135,6 +135,10 @@ def load_data():
 def calculate_next_due(interval_value, interval_unit, start_time=None):
     if start_time is None:
         start_time = datetime.utcnow()
+    
+    # Normalize to start of day
+    start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    
     delta = None
     unit = interval_unit.lower()
     if unit == "days": delta = timedelta(days=interval_value)
@@ -149,6 +153,23 @@ def strfdelta(tdelta, fmt):
     d["days"] = max(0, d["days"]); d["hours"] = max(0, hours); d["minutes"] = max(0, minutes); d["seconds"] = max(0, seconds)
     try: return fmt.format(**d)
     except KeyError as e: logger.error(f"Error formatting timedelta: Invalid key {e} in format string '{fmt}'"); return f"{d['days']}d {d['hours']}h {d['minutes']}m"
+
+def discord_date(dt, format_code="D"):
+    """Convert a datetime object to Discord's date-only timestamp format.
+    
+    Format codes:
+    d: Short Date (e.g., 04/20/2024)
+    D: Long Date (e.g., April 20, 2024)
+    R: Relative Time (e.g., 2 days ago, in a month)
+    """
+    if not dt:
+        return "Not set"
+    
+    # Convert to Unix timestamp (seconds since epoch)
+    unix_timestamp = int(dt.timestamp())
+    
+    # Return in Discord's timestamp format
+    return f"<t:{unix_timestamp}:{format_code}>"
 
     # --- Bot Setup ---
 intents = discord.Intents.default()
@@ -210,7 +231,7 @@ async def check_timers_task():
                     logger.info(f"Timer '{name}' in guild {guild_id} is due.")
                     embed = discord.Embed(
                         title=f"🚨 Maintenance Due: {name}",
-                        description=f"**Task:** {timer_data['description']}\n**Owner:** {timer_data['owner']}\n\nPlease complete the task and use `/done {name}`",
+                        description=f"**Task:** {timer_data['description']}\n**Owner:** {timer_data['owner']}\n**Due:** {discord_date(next_due_dt)}\n\nPlease complete the task and use `/done {name}`",
                         color=discord.Color.orange(),
                         timestamp=now
                     )
@@ -226,7 +247,7 @@ async def check_timers_task():
                         logger.info(f"Timer '{name}' in guild {guild_id} is pending - sending repeat reminder.")
                         embed = discord.Embed(
                             title=f"🔁 Maintenance Still Pending: {name}",
-                            description=f"**Task:** {timer_data['description']}\n**Owner:** {timer_data['owner']}\n\nThis is a reminder (repeats every {reminder_interval_days} days until done).\nPlease complete the task and use `/done {name}`",
+                            description=f"**Task:** {timer_data['description']}\n**Owner:** {timer_data['owner']}\n**Originally Due:** {discord_date(next_due_dt)}\n\nThis is a reminder (repeats every {reminder_interval_days} days until done).\nPlease complete the task and use `/done {name}`",
                             color=discord.Color.red(),
                             timestamp=now
                         )
@@ -308,7 +329,7 @@ async def create_timer(interaction: discord.Interaction, name: str, interval_val
         save_data()
         
         await interaction.response.send_message(
-            f"✅ Timer '{name}' created successfully!\nIt will first trigger on {next_due_time.strftime('%Y-%m-%d %H:%M:%S UTC')}.\n"
+            f"✅ Timer '{name}' created successfully!\nIt will first trigger on {discord_date(next_due_time)}.\n"
             f"Pending reminders will repeat every {global_settings['reminder_repeat_days']} days (global setting)."
         )
         logger.info(f"Timer '{name}' created in guild {guild_id} by {interaction.user.name}.")
@@ -356,7 +377,7 @@ async def done_timer(interaction: discord.Interaction, name: str):
         
         await interaction.response.send_message(
             f"✅ Timer '{name}' marked as done by {interaction.user.mention}!\n"
-            f"It will trigger again around {next_due_time.strftime('%Y-%m-%d %H:%M:%S UTC')}."
+            f"It will trigger again around {discord_date(next_due_time)}."
         )
         logger.info(f"Timer '{name}' marked done in guild {guild_id} by {interaction.user.name}.")
         
@@ -397,14 +418,10 @@ async def list_timers_cmd(interaction: discord.Interaction):
         status_emoji = "🚨 PENDING" if is_pending else "⏳ Active"
         
         if next_due_dt:
-            time_str = next_due_dt.strftime('%Y-%m-%d %H:%M UTC')
             if is_pending:
-                due_since = now - (next_due_dt if next_due_dt <= now else now)
-                due_since_str = strfdelta(due_since, "{days}d {hours}h {minutes}m ago")
-                time_display = f"Originally due: {time_str} ({due_since_str})"
+                time_display = f"Originally due: {discord_date(next_due_dt)} ({discord_date(next_due_dt, 'R')})"
             else:
-                time_delta = next_due_dt - now
-                time_display = f"Next due: {time_str} (in {strfdelta(time_delta, '{days}d {hours}h {minutes}m')})" if time_delta.total_seconds() > 0 else f"Due: {time_str} (Overdue!)"
+                time_display = f"Next due: {discord_date(next_due_dt)} ({discord_date(next_due_dt, 'R')})"
         else:
             time_display = "Next due date not set."
         
@@ -570,7 +587,7 @@ async def edit_timer(interaction: discord.Interaction, name: str, interval_value
                 return
             
             timer_data["next_due"] = next_due_time
-            changes_list.append(f"next due date to {next_due_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            changes_list.append(f"next due date to {discord_date(next_due_time)}")
         
         # Save changes if any were made
         if changes_made:
