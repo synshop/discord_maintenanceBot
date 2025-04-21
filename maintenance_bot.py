@@ -588,6 +588,63 @@ async def edit_timer(interaction: discord.Interaction, name: str, interval_value
     except Exception as e:
         await interaction.response.send_message("❌ An unexpected error occurred.", ephemeral=True)
         logger.error(f"Error editing timer '{name}' in guild {guild_id}: {e}", exc_info=True)
+
+@bot.tree.command(name="help", description="Shows available commands and how to use them")
+async def help_command(interaction: discord.Interaction):
+    """Displays help information about all available timer commands."""
+    
+    embed = discord.Embed(
+        title="Maintenance Timer Bot Help",
+        description="This bot helps you track and manage recurring maintenance tasks.",
+        color=discord.Color.blue()
+    )
+    
+    # Timer Management
+    embed.add_field(
+        name="⏱️ Timer Management",
+        value=(
+            "**`/create_timer`** - Create a new maintenance timer\n"
+            "**`/edit_timer`** - Edit an existing timer's properties\n"
+            "**`/delete_timer`** - Delete a timer permanently (requires 'Manage Server')\n"
+            "**`/done`** - Mark a timer as completed for this cycle\n"
+        ),
+        inline=False
+    )
+    
+    # Viewing Timers
+    embed.add_field(
+        name="📋 Viewing Timers",
+        value=(
+            "**`/list_timers`** - Show all active timers and their status\n"
+        ),
+        inline=False
+    )
+    
+    # Settings
+    embed.add_field(
+        name="⚙️ Settings",
+        value=(
+            "**`/get_reminder_interval`** - Show how often pending reminders repeat\n"
+            "**`/set_reminder_interval`** - Change how often pending reminders repeat (requires 'Manage Server')\n"
+        ),
+        inline=False
+    )
+    
+    # How to use example
+    embed.add_field(
+        name="📝 Example Usage",
+        value=(
+            "1. Create a timer: `/create_timer name:server-backup interval_value:7 interval_unit:Days owner:@Admin description:Backup the server`\n"
+            "2. Edit a timer: `/edit_timer name:server-backup interval_value:14 owner:@NewAdmin`\n"
+            "3. Mark as done: `/done name:server-backup`\n"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="All timers use UTC time zone.")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
 # --- Error Handling for App Commands ---
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
