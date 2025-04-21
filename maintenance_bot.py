@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import tasks
 import json
 import os
+import os.path
 from datetime import datetime, timedelta
 import asyncio
 import logging
@@ -38,6 +39,12 @@ except ValueError:
 
 # Data storage file path
 DATA_FILE = "/bot/data/maintenancebot_data.json"
+
+# Versioning info
+VERSION_FILE = "/bot/data/version.json"
+CURRENT_VERSION = "0.0.0"  # Default version if no version file exists
+RELEASE_NOTES = ""
+NEW_VERSION_DETECTED = False
 
 # --- Validate Essential Config ---
 if not BOT_TOKEN:
@@ -171,7 +178,60 @@ def discord_date(dt, format_code="D"):
     # Return in Discord's timestamp format
     return f"<t:{unix_timestamp}:{format_code}>"
 
-    # --- Bot Setup ---
+# Load version information
+def load_version_info():
+    """Loads version information from the version file."""
+    global CURRENT_VERSION, RELEASE_NOTES, NEW_VERSION_DETECTED
+    
+    if not os.path.exists(VERSION_FILE):
+        logger.warning(f"{VERSION_FILE} not found. Using default version {CURRENT_VERSION}.")
+        # Create the initial version file
+        save_version_info(CURRENT_VERSION, "", False)
+        return
+    
+    try:
+        with open(VERSION_FILE, 'r') as f:
+            version_data = json.load(f)
+            
+        stored_version = version_data.get("last_seen_version", "0.0.0")
+        CURRENT_VERSION = version_data.get("current_version", CURRENT_VERSION)
+        RELEASE_NOTES = version_data.get("release_notes", "")
+        
+        # Check if this is a new version
+        NEW_VERSION_DETECTED = CURRENT_VERSION != stored_version
+        
+        if NEW_VERSION_DETECTED:
+            logger.info(f"New version detected! Previous: {stored_version}, Current: {CURRENT_VERSION}")
+        else:
+            logger.info(f"Current version: {CURRENT_VERSION}")
+            
+    except (IOError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading version data: {e}")
+        # Create the file with defaults if there was an error
+        save_version_info(CURRENT_VERSION, "", False)
+
+# Save version information
+def save_version_info(version, notes, seen=True):
+    """Saves version information to the version file."""
+    try:
+        version_data = {
+            "current_version": version,
+            "release_notes": notes,
+            "last_seen_version": version if seen else "0.0.0"
+        }
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(VERSION_FILE), exist_ok=True)
+        
+        with open(VERSION_FILE, 'w') as f:
+            json.dump(version_data, f, indent=4)
+            
+        logger.info(f"Version data saved: {version}")
+        
+    except IOError as e:
+        logger.error(f"Error saving version data: {e}")
+
+# --- Bot Setup ---
 intents = discord.Intents.default()
 intents.guilds = True
 intents.messages = True
@@ -184,20 +244,78 @@ class MaintenanceBot(discord.Client):
         self.synced = False
 
     async def on_ready(self):
-        """Called when the bot is ready and connected."""
-        if not self.synced:
-            # This syncs the commands to Discord - only need to do it once
-            await self.tree.sync()
-            self.synced = True
-            
-        logger.info(f'Logged in as {self.user.name} ({self.user.id})')
-        logger.info('Loading data...')
-        load_data() 
-        logger.info('Starting timer check loop...')
-        check_timers_task.change_interval(seconds=CHECK_INTERVAL_SECONDS)
-        check_timers_task.start()
-        logger.info(f"Timer check interval: {CHECK_INTERVAL_SECONDS} seconds.")
-        logger.info('Bot is ready.')
+    """Called when the bot is ready and connected."""
+    if not self.synced:
+        # This syncs the commands to Discord - only need to do it once
+        await self.tree.sync()
+        self.synced = True
+        
+    logger.info(f'Logged in as {self.user.name} ({self.user.id})')
+    logger.info('Loading data...')
+    load_data()
+    load_version_info()  # Load version info
+    
+    # Announce new version if detected
+    if NEW_VERSION_DETECTED:
+        await self.announce_new_version()
+    
+    logger.info('Starting timer check loop...')
+    check_timers_task.change_interval(seconds=CHECK_INTERVAL_SECONDS)
+    check_timers_task.start()
+    logger.info(f"Timer check interval: {CHECK_INTERVAL_SECONDS} seconds.")
+    logger.info('Bot is ready.')
+
+async def announce_new_version(self):
+    """Announces a new version to all servers where the bot has permission."""
+    global CURRENT_VERSION, RELEASE_NOTES, NEW_VERSION_DETECTED
+    
+    logger.info(f"Announcing new version {CURRENT_VERSION} to all servers")
+    
+    for guild in self.guilds:
+        # Find the first text channel we can send messages to
+        channel = None
+        for ch in guild.text_channels:
+            # Try to find a "general" channel first
+            if ch.name.lower() in ["general", "main", "chat", "bot", "bot-commands"]:
+                channel = ch
+                break
+        
+        # If no preferred channel, just use the first one we can send to
+        if not channel:
+            for ch in guild.text_channels:
+                permissions = ch.permissions_for(guild.me)
+                if permissions.send_messages:
+                    channel = ch
+                    break
+        
+        # If we found a channel, send the announcement
+        if channel:
+            try:
+                embed = discord.Embed(
+                    title=f"🚀 Maintenance Timer Bot Updated to v{CURRENT_VERSION}",
+                    description="The bot has been updated with new features and improvements!",
+                    color=discord.Color.blue()
+                )
+                
+                if RELEASE_NOTES:
+                    embed.add_field(name="What's New", value=RELEASE_NOTES, inline=False)
+                
+                embed.add_field(
+                    name="Commands",
+                    value="Use `/help` to see all available commands and features.",
+                    inline=False
+                )
+                
+                embed.set_footer(text=f"Version {CURRENT_VERSION}")
+                
+                await channel.send(embed=embed)
+                logger.info(f"Sent update announcement to {guild.name} in {channel.name}")
+            except Exception as e:
+                logger.error(f"Failed to send update announcement to {guild.name}: {e}")
+    
+    # Mark this version as seen
+    save_version_info(CURRENT_VERSION, RELEASE_NOTES, True)
+    NEW_VERSION_DETECTED = False
 
 # Create bot instance
 bot = MaintenanceBot()
@@ -661,6 +779,21 @@ async def help_command(interaction: discord.Interaction):
     embed.set_footer(text="All timers use UTC time zone.")
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@bot.tree.command(name="version", description="Shows the current bot version")
+async def version_command(interaction: discord.Interaction):
+    """Displays the current version of the bot."""
+    embed = discord.Embed(
+        title=f"Maintenance Timer Bot v{CURRENT_VERSION}",
+        color=discord.Color.blue()
+    )
+    
+    if RELEASE_NOTES:
+        embed.add_field(name="What's New", value=RELEASE_NOTES, inline=False)
+    
+    embed.set_footer(text=f"Version {CURRENT_VERSION}")
+    
+    await interaction.response.send_message(embed=embed)
 
 # --- Error Handling for App Commands ---
 @bot.tree.error
