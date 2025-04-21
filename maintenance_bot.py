@@ -761,6 +761,7 @@ async def help_command(interaction: discord.Interaction):
         value=(
             "**`/get_reminder_interval`** - Show how often pending reminders repeat\n"
             "**`/set_reminder_interval`** - Change how often pending reminders repeat (requires 'Manage Server')\n"
+            "**`/version`** - List current running version\n"
         ),
         inline=False
     )
