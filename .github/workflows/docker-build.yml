@@ -50,7 +50,7 @@ jobs:
         if: github.event_name == 'release'
         run: |
           mkdir -p ./bot/data
-          cat << EOF > ./bot/data/version.json
+          cat << EOF > ./bot/version.json
           {
             "current_version": "${{ env.VERSION }}",
             "release_notes": $(echo '${{ steps.release_notes.outputs.notes }}' | jq -R -s .),
@@ -58,7 +58,7 @@ jobs:
           }
           EOF
           echo "Created version file:"
-          cat ./bot/data/version.json
+          cat ./bot/version.json
       
       # Ensures the version file is available in the Docker build context
       - name: Build and push Docker image
