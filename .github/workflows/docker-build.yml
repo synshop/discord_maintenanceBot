@@ -45,21 +45,14 @@ jobs:
             const releaseNotes = release.data.body || "No release notes provided";
             core.setOutput('notes', releaseNotes);
       
-      - name: Create version file
-        if: github.event_name == 'release'
-        run: |
-          # Create the version file directly in the repository root
-          echo '{
-            "current_version": "${{ env.VERSION }}",
-            "release_notes": ${{ toJSON(steps.release_notes.outputs.notes) }}
-          }' > version.json
-          cat version.json
-      
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            RELEASE_NOTES=${{ toJSON(steps.release_notes.outputs.notes) }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.VERSION }}
