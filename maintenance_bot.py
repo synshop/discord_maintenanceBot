@@ -244,78 +244,78 @@ class MaintenanceBot(discord.Client):
         self.synced = False
 
     async def on_ready(self):
-    """Called when the bot is ready and connected."""
-    if not self.synced:
-        # This syncs the commands to Discord - only need to do it once
-        await self.tree.sync()
-        self.synced = True
+        """Called when the bot is ready and connected."""
+        if not self.synced:
+            # This syncs the commands to Discord - only need to do it once
+            await self.tree.sync()
+            self.synced = True
+            
+        logger.info(f'Logged in as {self.user.name} ({self.user.id})')
+        logger.info('Loading data...')
+        load_data()
+        load_version_info()  # Load version info
         
-    logger.info(f'Logged in as {self.user.name} ({self.user.id})')
-    logger.info('Loading data...')
-    load_data()
-    load_version_info()  # Load version info
-    
-    # Announce new version if detected
-    if NEW_VERSION_DETECTED:
-        await self.announce_new_version()
-    
-    logger.info('Starting timer check loop...')
-    check_timers_task.change_interval(seconds=CHECK_INTERVAL_SECONDS)
-    check_timers_task.start()
-    logger.info(f"Timer check interval: {CHECK_INTERVAL_SECONDS} seconds.")
-    logger.info('Bot is ready.')
+        # Announce new version if detected
+        if NEW_VERSION_DETECTED:
+            await self.announce_new_version()
+        
+        logger.info('Starting timer check loop...')
+        check_timers_task.change_interval(seconds=CHECK_INTERVAL_SECONDS)
+        check_timers_task.start()
+        logger.info(f"Timer check interval: {CHECK_INTERVAL_SECONDS} seconds.")
+        logger.info('Bot is ready.')
 
-async def announce_new_version(self):
-    """Announces a new version to all servers where the bot has permission."""
-    global CURRENT_VERSION, RELEASE_NOTES, NEW_VERSION_DETECTED
-    
-    logger.info(f"Announcing new version {CURRENT_VERSION} to all servers")
-    
-    for guild in self.guilds:
-        # Find the first text channel we can send messages to
-        channel = None
-        for ch in guild.text_channels:
-            # Try to find a "general" channel first
-            if ch.name.lower() in ["general", "main", "chat", "bot", "bot-commands"]:
-                channel = ch
-                break
+    async def announce_new_version(self):
+        """Announces a new version to all servers where the bot has permission."""
+        global CURRENT_VERSION, RELEASE_NOTES, NEW_VERSION_DETECTED
         
-        # If no preferred channel, just use the first one we can send to
-        if not channel:
+        logger.info(f"Announcing new version {CURRENT_VERSION} to all servers")
+        
+        for guild in self.guilds:
+            # Find the first text channel we can send messages to
+            channel = None
             for ch in guild.text_channels:
-                permissions = ch.permissions_for(guild.me)
-                if permissions.send_messages:
+                # Try to find a "general" channel first
+                if ch.name.lower() in ["general", "main", "chat", "bot", "bot-commands"]:
                     channel = ch
                     break
+            
+            # If no preferred channel, just use the first one we can send to
+            if not channel:
+                for ch in guild.text_channels:
+                    permissions = ch.permissions_for(guild.me)
+                    if permissions.send_messages:
+                        channel = ch
+                        break
+            
+            # If we found a channel, send the announcement
+            if channel:
+                try:
+                    embed = discord.Embed(
+                        title=f"🚀 Maintenance Timer Bot Updated to v{CURRENT_VERSION}",
+                        description="The bot has been updated with new features and improvements!",
+                        color=discord.Color.blue()
+                    )
+                    
+                    if RELEASE_NOTES:
+                        embed.add_field(name="What's New", value=RELEASE_NOTES, inline=False)
+                    
+                    embed.add_field(
+                        name="Commands",
+                        value="Use `/help` to see all available commands and features.",
+                        inline=False
+                    )
+                    
+                    embed.set_footer(text=f"Version {CURRENT_VERSION}")
+                    
+                    await channel.send(embed=embed)
+                    logger.info(f"Sent update announcement to {guild.name} in {channel.name}")
+                except Exception as e:
+                    logger.error(f"Failed to send update announcement to {guild.name}: {e}")
         
-        # If we found a channel, send the announcement
-        if channel:
-            try:
-                embed = discord.Embed(
-                    title=f"🚀 Maintenance Timer Bot Updated to v{CURRENT_VERSION}",
-                    description="The bot has been updated with new features and improvements!",
-                    color=discord.Color.blue()
-                )
-                
-                if RELEASE_NOTES:
-                    embed.add_field(name="What's New", value=RELEASE_NOTES, inline=False)
-                
-                embed.add_field(
-                    name="Commands",
-                    value="Use `/help` to see all available commands and features.",
-                    inline=False
-                )
-                
-                embed.set_footer(text=f"Version {CURRENT_VERSION}")
-                
-                await channel.send(embed=embed)
-                logger.info(f"Sent update announcement to {guild.name} in {channel.name}")
-            except Exception as e:
-                logger.error(f"Failed to send update announcement to {guild.name}: {e}")
-    
-    # Mark this version as seen
-    save_version_info(CURRENT_VERSION, RELEASE_NOTES, True)
-    NEW_VERSION_DETECTED = False
+        # Mark this version as seen
+        save_version_info(CURRENT_VERSION, RELEASE_NOTES, True)
+        NEW_VERSION_DETECTED = False
 
 # Create bot instance
 bot = MaintenanceBot()

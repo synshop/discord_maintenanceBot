@@ -31,7 +31,6 @@ jobs:
           VERSION=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       
-      # Steps to handle release notes and version file
       - name: Get release notes
         if: github.event_name == 'release'
         id: release_notes
@@ -44,28 +43,20 @@ jobs:
               release_id: context.payload.release.id
             });
             const releaseNotes = release.data.body || "No release notes provided";
-            core.setOutput('notes', releaseNotes);
+            // Properly JSON-encode the notes and avoid control characters
+            const safeNotes = JSON.stringify(releaseNotes)
+              .replace(/\r/g, '')
+              .replace(/\n/g, '\\n');
+            core.setOutput('notes', safeNotes);
       
-      - name: Create version file
-        if: github.event_name == 'release'
-        run: |
-          mkdir -p ./bot/data
-          cat << EOF > ./bot/data/version.json
-          {
-            "current_version": "${{ env.VERSION }}",
-            "release_notes": $(echo '${{ steps.release_notes.outputs.notes }}' | jq -R -s .),
-            "last_seen_version": "0.0.0"
-          }
-          EOF
-          echo "Created version file:"
-          cat ./bot/data/version.json
-      
-      # Ensures the version file is available in the Docker build context
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            RELEASE_NOTES=${{ toJSON(steps.release_notes.outputs.notes) }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.VERSION }}
