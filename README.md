@@ -1,5 +1,11 @@
 # Discord Maintenance Timer Bot
 
+[![GitHub Release][releases-shield]][releases]
+![Docker Version][docker-version]
+[![License][license-shield]][license]
+![Project Maintenance][maintenance-shield]
+![Last Commit][last-commit]
+
 A simple Discord bot written in Python, designed to manage recurring maintenance tasks or reminders within a Discord server for a SYN Shop. It allows discord users to create multiple timers with custom intervals, descriptions, and owners. When a task is due, the bot posts a reminder in the designated channel and continues to re-notify at a configurable interval until the task is marked as complete. Any user can add a timer, but only an admin (in our case board members) can delete one.
 
 ## Features
@@ -157,3 +163,13 @@ Interact with the bot using commands in your Discord server channels. The defaul
 ---
 
 *Feel free to open an issue if you find bugs or have suggestions for improvement.*
+
+---
+
+[releases]: https://github.com/synshop/discord_maintenancebot/releases
+[releases-shield]: https://img.shields.io/github/release/synshop/discord_maintenancebot.svg?style=for-the-badge
+[docker-version]: https://img.shields.io/docker/v/synshop/discord_maintenancebot%3A
+[license]: LICENSE
+[license-shield]: https://img.shields.io/github/license/synshop/discord_maintenancebot.svg?style=for-the-badge
+[maintenance-shield]: https://img.shields.io/badge/maintainer-Sargonas-blue.svg?style=for-the-badge
+[last-commit]: https://img.shields.io/github/last-commit/synshop/discord_maintenancebot
